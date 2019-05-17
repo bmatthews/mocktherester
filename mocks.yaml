@@ -1,0 +1,12 @@
+---
+routes:
+  - method: POST
+    path: "/Accounts/{username}/Messages.json"
+    auth:
+      type: BASIC
+      username: foo
+      password: bar
+    result:
+      code: 201
+      data:
+        test: test
