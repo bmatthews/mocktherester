@@ -26,7 +26,7 @@ if you want to supply a mocks file when running mount a volume at `/config/mocks
 
 ### Twillio SMS
 
-```$yaml
+```yaml
 routes:
   - method: POST
     name: "SMS"
@@ -41,4 +41,5 @@ routes:
          test: test
 
 ```
+
 
