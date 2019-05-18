@@ -1,7 +1,13 @@
-# mockyrestface
+# MockTheRester
 a very simple rest api mocker
 
 to mock an api simply add the endpoint to the yaml file and run the application.
+
+to build the application run `docker build -t mocktherester  .`
+
+to run the application run `docker run -p 8080:8080 mocktherester`
+
+if you want to supply a mocks file when running mount a volume at `/config/mocks.yaml`
 
 ## Examples
 

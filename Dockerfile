@@ -9,4 +9,4 @@ FROM alpine:3.9
 COPY --from=builder /out/server /server
 COPY --from=builder /src/mocks.yaml /config/mocks.yaml
 ENTRYPOINT [ "/server" ]
-ARG mocks=/config/mocks.yaml
+CMD ["--mocks", "/config/mocks.yaml"]
