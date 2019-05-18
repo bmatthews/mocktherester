@@ -1,6 +1,7 @@
 ---
 routes:
   - method: POST
+    name: "SMS"
     path: "/Accounts/{username}/Messages.json"
     auth:
       type: BASIC

@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,7 +25,7 @@ var flags = struct {
 	mocks: "mocks",
 }
 
-var logs []*Log
+var logs = make(map[string][]*Log)
 
 func main() {
 	stop := make(chan os.Signal, 1)
@@ -37,7 +36,10 @@ func main() {
 	flag.String(flags.mocks, "mocks.yaml", "mock file")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
-	viper.BindPFlags(pflag.CommandLine)
+	err := viper.BindPFlags(pflag.CommandLine)
+	if err != nil {
+		log.Fatal("binding flags")
+	}
 
 	port := viper.GetInt(flags.port)
 	mocks := viper.GetString(flags.mocks)
@@ -47,20 +49,21 @@ func main() {
 	config := getRoutes(mocks)
 	for _, v := range config.Routes {
 		r.HandleFunc(v.Path, func(w http.ResponseWriter, r *http.Request) {
-			log := func(w http.ResponseWriter, r *http.Request) {
-				dump, _ := httputil.DumpRequest(r, true)
-				logs = append(logs, &Log{
+			l := func(w http.ResponseWriter, r *http.Request) {
+				r.ParseForm()
+				logs[v.Name] = append(logs[v.Name], &Log{
 					Path:    r.URL.String(),
-					Request: string(dump),
+					Headers: r.Header,
+					Form:    r.Form,
 				})
 				w.WriteHeader(v.Result.Code)
 				sendJSON(w, v.Result.Data)
 			}
 			if v.Auth.Type == BASIC {
 				fmt.Println("handling basic auth")
-				BasicAuth(log, v.Auth.Username, v.Auth.Password)(w, r)
+				BasicAuth(l, v.Auth.Username, v.Auth.Password)(w, r)
 			} else {
-				log(w, r)
+				l(w, r)
 			}
 		})
 	}
@@ -84,7 +87,10 @@ func BasicAuth(handler http.HandlerFunc, username, password string) http.Handler
 		if (ok && (user != username || pass != password)) || !ok { // dont care about timings of the checks
 			fmt.Println("failed auth check")
 			w.WriteHeader(401)
-			w.Write([]byte("Unauthorised.\n"))
+			_, err := w.Write([]byte("Unauthorised.\n"))
+			if err != nil {
+				log.Println(err)
+			}
 			return
 		}
 		fmt.Println("passed auth check")
@@ -129,6 +135,7 @@ type Config struct {
 }
 
 type Route struct {
+	Name   string `yaml:"name"`
 	Method Method `yaml:"method"`
 	Path   string `yaml:"path"`
 	Auth   Auth   `yaml:"auth"`
@@ -153,6 +160,7 @@ type Result struct {
 }
 
 type Log struct {
-	Path    string `json:"path"`
-	Request string `json:"request"`
+	Path    string              `json:"path"`
+	Headers map[string][]string `json:"headers"`
+	Form    map[string][]string `json:"form"`
 }
