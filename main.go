@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/pflag"
@@ -52,9 +53,11 @@ func main() {
 			l := func(w http.ResponseWriter, r *http.Request) {
 				r.ParseForm()
 				logs[v.Name] = append(logs[v.Name], &Log{
-					Path:    r.URL.String(),
-					Headers: r.Header,
-					Form:    r.Form,
+					Path:        r.URL.String(),
+					RequestTime: time.Now(),
+					Headers:     r.Header,
+					Form:        r.Form,
+					Method:      r.Method,
 				})
 				w.WriteHeader(v.Result.Code)
 				sendJSON(w, v.Result.Data)
@@ -65,7 +68,7 @@ func main() {
 			} else {
 				l(w, r)
 			}
-		})
+		}).Methods(string(v.Method))
 	}
 
 	r.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +163,9 @@ type Result struct {
 }
 
 type Log struct {
-	Path    string              `json:"path"`
-	Headers map[string][]string `json:"headers"`
-	Form    map[string][]string `json:"form"`
+	Path        string              `json:"path"`
+	RequestTime time.Time           `json:"reqeust_time"`
+	Method      string              `json:"method"`
+	Headers     map[string][]string `json:"headers"`
+	Form        map[string][]string `json:"form"`
 }
